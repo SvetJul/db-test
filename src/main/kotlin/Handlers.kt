@@ -67,15 +67,9 @@ class FlightsHandler() {
 
     fun handleDeletePlanet(planetId: Int): String {
         return withinTransaction {
-            val entityCount = it.createQuery("SELECT count (p) FROM planet p WHERE p.id = :id", java.lang.Long::class.java)
+            val entityCount = it.createQuery("DELETE FROM planet p WHERE p.id = :id")
                     .setParameter("id", planetId)
-                    .singleResult
-            if (entityCount > 0) {
-                it.createQuery("DELETE FROM planet p WHERE p.id = :id")
-                        .setParameter("id", planetId)
-                        .executeUpdate()
-
-            }
+                    .executeUpdate()
             "Deleted $entityCount planets"
         }!!
     }
