@@ -19,7 +19,7 @@ class App() {
       "Hello DB"
     }
     get("/flights") { req, res ->
-      res.header("Content-type", "text/html;charset=utf-8");
+      res.header("Content-type", "text/html;charset=utf-8")
       val flightDate: Date? = req.queryParams("flight_date")?.let {
         SimpleDateFormat("yyyy-MM-dd").parse(it)
       }
@@ -49,6 +49,5 @@ class App() {
 }
 
 fun main(args: Array<String>) {
-  initDb(user = "postgres", password="", database = "postgres")
   App()
 }

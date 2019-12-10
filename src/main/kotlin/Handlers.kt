@@ -5,12 +5,12 @@ import java.time.LocalDate
 import java.util.*
 import javax.persistence.*
 import javax.persistence.criteria.CriteriaQuery
-import javax.persistence.criteria.Join
+import javax.persistence.criteria.Fetch
 import javax.persistence.criteria.Root
 
 
 @Entity(name = "planet")
-class PlanetEntity {
+open class PlanetEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Int? = null
@@ -19,7 +19,7 @@ class PlanetEntity {
 }
 
 @Entity(name = "flight")
-class FlightEntity {
+open class FlightEntity {
     @Id
     var id: Int? = null
     var date: Date? = null
@@ -28,9 +28,9 @@ class FlightEntity {
     var planet: PlanetEntity? = null
 }
 
+@Suppress("JpaQlInspection")
 class FlightsHandler() {
     private val emf = Persistence.createEntityManagerFactory("Postgres")
-    private val entityManager = emf.createEntityManager()
 
     fun handleFlights(flightDate: Date?): String {
         val tablebody = withinTransaction {
@@ -45,11 +45,12 @@ class FlightsHandler() {
         val cb = entityManager.criteriaBuilder
         val flightCriteria: CriteriaQuery<FlightEntity> = cb.createQuery(FlightEntity::class.java)
         val flightRoot: Root<FlightEntity> = flightCriteria.from(FlightEntity::class.java)
-        val planet: Join<FlightEntity, PlanetEntity> = flightRoot.join("planet")
+        @Suppress("UNUSED_VARIABLE") val fetch: Fetch<FlightEntity, PlanetEntity> = flightRoot.fetch("planet")
         flightCriteria.select(flightRoot)
+
         if (flightDate != null) {
             val dateProperty = flightRoot.get<LocalDate>("date")
-            flightCriteria.where(cb.equal(dateProperty, flightDate));
+            flightCriteria.where(cb.equal(dateProperty, flightDate))
         }
         return entityManager.createQuery(flightCriteria).resultList
     }
@@ -57,7 +58,7 @@ class FlightsHandler() {
     fun handleDelayFlights(flightDate: Date, interval: Int): String {
         val c = Calendar.getInstance()
         c.time = flightDate
-        c.add(Calendar.DAY_OF_MONTH, interval);
+        c.add(Calendar.DAY_OF_MONTH, interval)
         val updateCount = withinTransaction {
             it.createQuery("UPDATE flight f SET f.date=:newDate WHERE f.date=:initDate")
                     .setParameter("initDate", flightDate)
