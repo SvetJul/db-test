@@ -1,9 +1,11 @@
 package hellodb
 
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.util.*
 import javax.persistence.*
 import javax.persistence.criteria.CriteriaQuery
+import javax.persistence.criteria.Join
 import javax.persistence.criteria.Root
 
 
@@ -21,7 +23,7 @@ class FlightEntity {
     @Id
     var id: Int? = null
     var date: Date? = null
-    @ManyToOne()
+    @ManyToOne
     @JoinColumn(name = "planet_id")
     var planet: PlanetEntity? = null
 }
@@ -42,26 +44,27 @@ class FlightsHandler() {
     private fun getFlights(flightDate: Date?, entityManager: EntityManager): List<FlightEntity> {
         val cb = entityManager.criteriaBuilder
         val flightCriteria: CriteriaQuery<FlightEntity> = cb.createQuery(FlightEntity::class.java)
-        val flightRoot: Root<FlightEntity> = flightCriteria.from(FlightEntity::class.java
-        val planet : Join<FlightEntity, PlanetEntity>= personWorkRoot.join("workingPlaces")
-        personWorkCriteria.select(personWorkRoot);
-        personWorkCriteria.where(cb.equal(company.get("name"), "Acme Ltd"));
-        em.createQuery(personWorkCriteria)
-                .getResultList()
-                .forEach(System.out::println);
+        val flightRoot: Root<FlightEntity> = flightCriteria.from(FlightEntity::class.java)
+        val planet: Join<FlightEntity, PlanetEntity> = flightRoot.join("planet")
+        flightCriteria.select(flightRoot)
+        if (flightDate != null) {
+            val dateProperty = flightRoot.get<LocalDate>("date")
+            flightCriteria.where(cb.equal(dateProperty, flightDate));
+        }
+        return entityManager.createQuery(flightCriteria).resultList
     }
 
-    fun handleDelayFlights(flightDate: Date, interval: String): String {
-        var updateCount = 0
-        withinTransaction {
+    fun handleDelayFlights(flightDate: Date, interval: Int): String {
+        val c = Calendar.getInstance()
+        c.time = flightDate
+        c.add(Calendar.DAY_OF_MONTH, interval);
+        val updateCount = withinTransaction {
+            it.createQuery("UPDATE flight f SET f.date=:newDate WHERE f.date=:initDate")
+                    .setParameter("initDate", flightDate)
+                    .setParameter("newDate", c.time)
+                    .executeUpdate()
+        }!!
 
-        }
-        cacheFlights(flightDate).forEach { flightId ->
-            withConnection(true) {
-                updateCount += it.prepareStatement("UPDATE Flight SET date=date + interval '$interval' WHERE id=$flightId")
-                        .executeUpdate()
-            }
-        }
         return "Updated $updateCount flights"
     }
 
